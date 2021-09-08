@@ -1,5 +1,6 @@
 import math
 import time
+import socket
 
 import ledshim
 
@@ -11,6 +12,16 @@ def map_val(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
+def is_connected():
+    try:
+        sock = socket.create_connection(("1.1.1.1", 53))
+    except OSError:
+        return False
+    else:
+        sock.close()
+        return True
+
+
 scan = []
 for intensity in range(round(ledshim.NUM_PIXELS / 2)):
     scan.append(map_val(intensity, 0, ledshim.NUM_PIXELS / 2 - 1, 64, 255))
@@ -19,7 +30,7 @@ for intensity in range(round(ledshim.NUM_PIXELS / 2)):
 
 delta = 0
 
-start_time = time.time()
+last_try = time.time()
 
 while True:
     for px in range(ledshim.NUM_PIXELS):
@@ -31,8 +42,14 @@ while True:
     delta += 1
     time.sleep(0.025)
 
-    if time.time() - start_time > 3:
-        break
+    if time.time() - last_try > 3:
+        last_try = time.time()
+        print("Testing internet connection...")
+        if is_connected():
+            print("Connected!")
+            break
+        else:
+            print("Failed to find internet connection!")
 
 ledshim.set_all(0, 255, 0)
 ledshim.show()
